@@ -1,0 +1,87 @@
+# ArguBASH global completion for bash
+
+# Note: This script is intended to be sourced from your .bashrc or .bash_profile
+#       and will not do anything if run directly.
+
+# Note: This completion script is global/automatic only in newer bash versions
+#       that support the -D option to the complete built-in.  If you are on an
+#       older version of bash, you will need to source this script with the
+#       commands you want to support completion for.  For example:
+#       source ArguBASH-completion command1 command2 ...
+#
+#       You can source it multiple times if you wish, the function definition
+#       will just be redefined to itself.  Or your could just add more complete
+#       commands to set up your additional commands.
+#
+#       It is unfortunate that Apple is shipping even the latest MacOS with
+#       bash 3.2.57 which is from 2014 - but the newer bash license is the
+#       reason for this and why Apple is pushing zsh as the interactive shell
+#       Unfortunately, zsh is not bash compatible albeit it is posix "sh"
+#       compatible so it is very similar but not a full drop-in replacement.
+
+_ArguBASH_completion() {
+    # Check that this really is an executable and where it came from
+    local SCRIPT_NAME
+    if SCRIPT_NAME=$(type -P "${1}"); then
+        # We don't complete parameters for arguments, just arguments
+        if ! [[ ${3} == "--"* ]]; then
+            # Check if the script has our argument parser in it
+            local check_header=""
+            read -n 4096 -d '' -r check_header < "${SCRIPT_NAME}" 2>/dev/null
+            # It must be bash and have "ARGS_AND_DEFAULTS=(" early on.
+            if [[ "${check_header}" =~ ^#!.*bash ]] && [[ "${check_header}" =~ ARGS_AND_DEFAULTS=\( ]]; then
+                # We have a match, so we can use the script
+                # for completion
+                # This gets the arguments from the script in question.  We should
+                # never get here unless it is a script that we know is one of ours.
+                # Note that help is always available but never in the list of
+                # arguments so we just add it to start the list.
+                local script_args=("help")
+                local in_args=0
+                local line=""
+
+                while read -r line; do
+                    if [[ ${line} == *"ARGS_AND_DEFAULTS=("* ]]; then
+                        in_args=1
+                    elif [[ ${in_args} -eq 1 ]]; then
+                        # Check for the end of the arguments and exit the loop
+                        [[ ${line} == ")" ]] && break
+                        # Trim leading whitespace
+                        line="${line#"${line%%[![:space:]]*}"}"
+                        # Validate that it is a valid argument setting
+                        if [[ ${line} =~ ^[a-zA-Z][a-zA-Z0-9_]*= ]]; then
+                            local argument="${line/=*}"
+                            script_args+=("${argument//_/-}")
+                        fi
+                    fi
+                done < "${SCRIPT_NAME}"
+
+                # Now, the target word that is entered so far, needs to have
+                # the first "-" or "--" removed so it can match the words in
+                # the script_args array.
+                local current_word="${2}"
+                current_word="${current_word#-}"
+                current_word="${current_word#-}"
+                COMPREPLY=($(compgen -P -- -W "${script_args[*]}" -- "${current_word}" 2>/dev/null))
+            fi # End of check_header check
+        fi # End of argument check
+    fi # End script file finding
+}
+
+# This is the completion definition - this will do it globally for all commands
+# and the code completion fuction checks if it is one of ours before providing
+# any completion.
+if ! complete -o default -o bashdefault -D -F _ArguBASH_completion 2>/dev/null; then
+    if [[ -n "${@}" ]]; then
+        # If the above fails, (older bash) we need to set the completion for each
+        # command that we want to use this for.  This is a bit of a pain but it is
+        # the only way to do it.  This likely fails unless you source it with the
+        # commands:  for example: source ArguBASH-completion command1 command2 ...
+        complete -o default -o bashdefault -F _ArguBASH_completion "${@}"
+    else
+        echo >&2 "Error:  Your bash version does not support global completion."
+        echo >&2 "Please source this with the commands you want it to work for."
+        echo >&2 "For example:  source ArguBASH-completion command1 command2 ..."
+        echo >&2 "You can source it multiple times if you wish."
+    fi
+fi
