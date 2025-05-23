@@ -475,39 +475,57 @@ To help visualize how ArguBASH processes command-line arguments, here's a flowch
 
 ```mermaid
 flowchart TD
-    Start([Script Execution Starts]) -->
-    EnvVars[Check Environment Variables for Overrides while setting defaults from ARGS_AND_DEFAULTS]
-    EnvVars --> ParseArgs[Parse Command Line Arguments]
+   Start([<span style="font-size: 150%">Script Execution Starts</span>]) --> DefineArgs
+   DefineArgs{{The Declarative **ARGS_AND_DEFAULTS** is loaded and EXTRA_ARGS is set}} --> ParserStart
 
-    ParseArgs -->|Next arg| IsHelp{Is it --help or -h?}
+   ParserStart[/Start of **ArguBASH** parser\] --> EnvVars
+   EnvVars[Check Environment Variables for Overrides while setting defaults from ARGS_AND_DEFAULTS] --> ParseArgs
+   ParseArgs[Process Command Line Argument] --> NextArg{Next Argument?}
 
-    IsHelp -->|No| IsDelimiter{Is it -- and EXTRA_ARGS=true?}
+   NextArg -->|Yes| IsHelp{Is it --help or -h?}
 
-    IsDelimiter -->|No| IsOption{Does it start with --?}
+   IsHelp -->|Yes| ShowHelp
+   ShowHelp[/Show Help/] --> HelpExit
+   HelpExit([Exit])
 
-    IsOption -->|Yes| MatchParam{Match defined parameter?}
-    MatchParam -->|Yes| SetValue[Set Variable Value]
-    SetValue --> NextArg[Continue to Next Argument]
+   IsHelp -->|No| IsDelimiter{Is it -- and EXTRA_ARGS=true?}
 
-    MatchParam -->|No| ShowError[Show Error and Exit]
+   IsDelimiter -->|No| IsOption{Does it start with --?}
+   IsDelimiter -->|Yes| CollectRest
 
-    IsDelimiter -->|Yes| CollectRest[Collect All Remaining Args as Positional]
+   IsOption -->|Yes| MatchParam{Match defined parameter?}
+   IsOption -->|No| ExtraEnabled{Is EXTRA_ARGS enabled?}
 
-    IsOption -->|No| ExtraEnabled{Is EXTRA_ARGS enabled?}
-    ExtraEnabled -->|Yes| AddPositional[Add to extra_args Array]
-    ExtraEnabled -->|No| ShowError
+   MatchParam -->|Yes| SetValue
+   MatchParam -->|No| ShowError
 
-    AddPositional --> NextArg
-    CollectRest --> FinalSteps
+   ExtraEnabled -->|No| ShowError
+   ExtraEnabled -->|Yes| AddPositional
 
-    NextArg --> ParseArgs
+   SetValue[Set Variable Value] --> NextArgLoop
 
-    ParseArgs -->|No more| FinalSteps[Unset Blank Values]
-    FinalSteps --> LogEffective[Log Effective Command Line Options]
-    LogEffective --> ScriptLogic[Your Script Logic Begins]
+   ShowError[/Show Error/] --> ErrorExit
 
-    IsHelp -->|Yes| ShowHelp[Show Help and Exit]
+   ErrorExit([Error Exit])
 
+   AddPositional[Add to extra_args Array] --> NextArgLoop
+
+   NextArgLoop[Continue to Next Argument] --> NextArg
+
+   CollectRest[Collect All Remaining Args as Positional] --> FinalSteps
+
+   NextArg -->|No| FinalSteps
+
+   FinalSteps[Unset Blank Values] --> Verbosity{Is Verbosity > 1}
+
+   Verbosity -->|No| EndOfParser
+   Verbosity -->|Yes| LogEffective
+
+   LogEffective[/Log Effective Command Line Options/] --> EndOfParser
+
+   EndOfParser[\End of **ArguBASH** parser/] --> ScriptLogic
+
+   ScriptLogic([<span style="font-size: 150%">Your Script Logic Begins</span>])
 ```
 
 #### Key Processing Steps
