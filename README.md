@@ -124,9 +124,8 @@ When enabled, ArguBASH collects positional arguments in two ways:
 
 The `--` delimiter (end-of-options marker) is an established standard across Unix/Linux tools and is especially important when:
 - Working with filenames or paths that begin with a dash
-- Passing negative numbers as arguments
+  - such as `rm -- *` in case the files include a file with a leading `-`
 - Handling arguments that might be interpreted as options
-- Processing user-supplied values that could contain special characters
 
 All positional arguments are stored in the `extra_args` array, which you can access in your script logic.
 
@@ -143,10 +142,10 @@ In this example, `file1.txt` and `file2.txt` are collected as positional argumen
 #### Using the `--` delimiter:
 
 ```bash
-./my-script.sh --verbose true -- --output-file report.txt
+./my-script.sh --verbose true -- foo --output-file report.txt
 ```
 
-Here, `--output-file` and `report.txt` are treated as positional arguments because they appear after the `--` delimiter, even though `--output-file` looks like a named parameter.
+Here, `--output-file` and `report.txt` are treated as positional arguments because they appear after the `--` delimiter, even though `--output-file` looks like a named parameter to the script but in this case is really a parameter to the `foo` thing (potentially a command your script wrappers).
 
 ### Accessing Positional Arguments in Your Script
 
@@ -173,10 +172,9 @@ fi
 
 Positional arguments are useful for:
 
-- File or directory paths that are primary inputs to your script
-- Command names when your script acts as a wrapper for multiple commands
-- Target names, usernames, or other primary identifiers
-- Simplifying the interface when parameters have a natural, expected order
+- File or directory paths that are primary inputs to your script, especially if there can be an arbitrary number of them.
+- Wrapped commands - when your script acts as a wrapper for other commands and their options
+- Simplifying the interface when parameters have a natural, expected order such as `cp fromfile tofile` does.
 
 For important configuration options that might be missed, named parameters (with `--name value` syntax) are generally more self-documenting and should be preferred.
 
@@ -481,20 +479,19 @@ flowchart TD
     EnvVars[Check Environment Variables for Overrides while setting defaults from ARGS_AND_DEFAULTS]
     EnvVars --> ParseArgs[Parse Command Line Arguments]
 
-    ParseArgs --> IsHelp{Is it --help or -h?}
-    IsHelp -->|Yes| ShowHelp[Show Help and Exit]
+    ParseArgs -->|Next arg| IsHelp{Is it --help or -h?}
 
     IsHelp -->|No| IsDelimiter{Is it -- and EXTRA_ARGS=true?}
-    IsDelimiter -->|Yes| CollectRest[Collect All Remaining Args as Positional]
 
     IsDelimiter -->|No| IsOption{Does it start with --?}
 
     IsOption -->|Yes| MatchParam{Match defined parameter?}
     MatchParam -->|Yes| SetValue[Set Variable Value]
     SetValue --> NextArg[Continue to Next Argument]
-    NextArg --> ParseArgs
 
     MatchParam -->|No| ShowError[Show Error and Exit]
+
+    IsDelimiter -->|Yes| CollectRest[Collect All Remaining Args as Positional]
 
     IsOption -->|No| ExtraEnabled{Is EXTRA_ARGS enabled?}
     ExtraEnabled -->|Yes| AddPositional[Add to extra_args Array]
@@ -503,9 +500,14 @@ flowchart TD
     AddPositional --> NextArg
     CollectRest --> FinalSteps
 
-    ParseArgs --> FinalSteps[Unset Blank Values]
+    NextArg --> ParseArgs
+
+    ParseArgs -->|No more| FinalSteps[Unset Blank Values]
     FinalSteps --> LogEffective[Log Effective Command Line Options]
     LogEffective --> ScriptLogic[Your Script Logic Begins]
+
+    IsHelp -->|Yes| ShowHelp[Show Help and Exit]
+
 ```
 
 #### Key Processing Steps
