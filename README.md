@@ -47,7 +47,9 @@ fi
 - **Environment Variable Support**: Default values can be overridden by environment variables
 - **Command-line/Variable Name Conversion**: Automatic conversion between command-line options with dashes (`--vm-sku`) and script variables with underscores (`vm_sku`)
 - **Positional Arguments Support**: Optionally capture remaining arguments with support for the `--` delimiter
-- **Tab Completion**: Supports bash tab completion for all defined arguments (see tab completion section below)
+- **Tab Completion**:
+  - Supports Bash tab completion for all defined arguments
+  - Enhanced Zsh completion that displays help text descriptions and default values directly in the completion menu, leveraging ArguBASH's declarative structure
 
 ## Installation
 
@@ -424,21 +426,74 @@ These examples demonstrate how ArguBASH can be used in production scripts with m
 
 ## Tab Completion
 
-To enable tab completion for ArguBASH scripts:
+ArguBASH supports tab completion for both Bash and Zsh shells, making it easier to use your scripts interactively.
 
-1. For newer Bash versions (4.0+):
+### Bash Completion
+
+To enable tab completion for ArguBASH scripts in Bash:
+
+1. Place the completion script in a convenient location:
    ```bash
-   # Add to your ~/.bashrc or ~/.bash_profile
-   source /path/to/ArguBASH-completion
+   # Create a directory for Bash completions if it doesn't exist
+   mkdir -p ~/.bash_completion.d
+
+   # Copy the completion script
+   cp /path/to/ArguBASH-completion ~/.bash_completion.d/
+
+   # Make sure it's executable
+   chmod +x ~/.bash_completion.d/ArguBASH-completion
    ```
 
-2. For older Bash versions (such as the default on macOS):
+2. Source the completion script in your `~/.bashrc` or `~/.bash_profile`:
+
+   For newer Bash versions (4.0+):
+   ```bash
+   # Add to your ~/.bashrc or ~/.bash_profile
+   source ~/.bash_completion.d/ArguBASH-completion
+   ```
+
+   For older Bash versions (such as the default on macOS):
    ```bash
    # Add to your ~/.bashrc or ~/.bash_profile with specific commands
-   source /path/to/ArguBASH-completion command1 command2 ...
+   source ~/.bash_completion.d/ArguBASH-completion command1 command2 ...
+   ```
+
+3. Reload your Bash configuration or start a new shell session:
+   ```bash
+   source ~/.bashrc  # or source ~/.bash_profile
    ```
 
 The [ArguBASH-completion](./ArguBASH-completion) script will automatically detect ArguBASH-compatible scripts and provide tab completion for their arguments.
+
+### Zsh Completion
+
+For Zsh users, ArguBASH includes a dedicated completion script that follows Zsh conventions:
+
+1. Place the `_ArguBASH-completion` script in a directory in your `$fpath` (the leading underscore in the filename is intentional and follows Zsh conventions):
+   ```bash
+   # Create a directory for Zsh completions if it doesn't exist
+   mkdir -p ~/.zsh/site-functions
+
+   # Copy the completion script
+   cp /path/to/_ArguBASH-completion ~/.zsh/site-functions/
+
+   # Make sure it's executable
+   chmod +x ~/.zsh/site-functions/_ArguBASH-completion
+   ```
+
+2. Ensure the completion directory is in your `$fpath`. Add this to your `~/.zshrc`:
+   ```bash
+   # Add the site-functions directory to fpath
+   fpath=(~/.zsh/site-functions $fpath)
+   ```
+
+3. Rebuild the Zsh completion cache:
+   ```bash
+   rm -f ~/.zcompdump
+   compinit
+   ```
+
+Once installed, any script using ArguBASH argument parsing will automatically get tab completion for its defined arguments when using Zsh.
 
 ## Limitations
 

@@ -1,0 +1,95 @@
+#compdef -default-
+# ArguBASH global completion for zsh
+#
+# This file provides automatic tab completion for any script that uses the
+# ArguBASH argument parsing system.
+#
+# Installation:
+# 1. Place this file in a directory in your $fpath (e.g. ~/.zsh/site-functions/)
+# 2. Make sure it's executable: chmod +x _ArguBASH-completion
+# 3. If needed, rebuild zsh completion cache: rm -f ~/.zcompdump; compinit
+#
+# Usage:
+# Once installed, any script using ArguBASH argument parsing will automatically
+# get tab completion for its defined arguments.
+
+_ArguBASH_completion() {
+    local curcontext="$curcontext" state line
+    local script_path cmd="${words[1]}"
+
+    # Check that this really is an executable and where it came from
+    if script_path=$(command -v "$cmd" 2>/dev/null); then
+        # Check if the script has our argument parser in it
+        local check_header=""
+        check_header=$(head -n 4096 "${script_path}" 2>/dev/null)
+
+        # It must be bash and have "ARGS_AND_DEFAULTS=(" early on.
+        if [[ "${check_header}" =~ '#!.*bash' && "${check_header}" =~ 'ARGS_AND_DEFAULTS=\(' ]]; then
+            # We have a match, so we can use the script for completion
+
+            # This gets the arguments from the script in question
+            local script_args=()
+            local in_args=0
+            local line=""
+            local -a argument_specs=()
+            local description=""
+
+            # Always add help as an option
+            argument_specs+=('--help[Show full help]' '-h[Show brief help]')
+
+            while IFS= read -r line; do
+                if [[ ${line} == *"ARGS_AND_DEFAULTS=("* ]]; then
+                    in_args=1
+                elif [[ ${in_args} -eq 1 ]]; then
+                    # Check for the end of the arguments and exit the loop
+                    [[ ${line} == ")" ]] && break
+
+                    # Trim leading whitespace
+                    line="${line#"${line%%[![:space:]]*}"}"
+
+                    # Check if this is a help comment line as that would be
+                    # part of the help text for the argument
+                    if [[ ${line} == "# "* ]]; then
+                        # Store description for next argument
+                        # It can be multiple lines of help but we only
+                        # use the first line as a "summary" for tab completion
+                        if [[ -z ${description} ]]; then
+                            description="${line#"# "} "
+                        fi
+                    elif [[ ${line} =~ '[a-zA-Z][a-zA-Z0-9_]*=' ]]; then
+                        # This is an argument definition
+                        local argument="${line/=*}"
+                        local arg_with_dashes="${argument//_/-}"
+                        local default_value="${line#*=}"
+
+                        # Create a description with the default value
+                        local arg_description="${description:-$argument}(default: ${default_value})"
+
+                        # Add the argument to our specs
+                        argument_specs+=("--${arg_with_dashes}[${arg_description}]:value:")
+
+                        # Clear description for next argument
+                        description=""
+                    fi
+                fi
+            done < "${script_path}"
+
+            # Check if the script accepts extra args
+            if grep -q "EXTRA_ARGS=true" "${script_path}" 2>/dev/null; then
+                argument_specs+=('*:extra arguments:_files')
+            fi
+            set >>/tmp/test.log
+            # Use _arguments to handle the actual completion
+            # -S stops argument processing at --
+            _arguments -S : "${argument_specs[@]}"
+            return 0
+        fi
+    fi
+
+    # If we get here, it's not a script using our argument parser,
+    # so fall back to default completion
+    return 1
+}
+
+# Register the completion function for all commands
+compdef _ArguBASH_completion -default-
