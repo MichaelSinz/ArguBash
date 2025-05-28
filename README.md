@@ -465,6 +465,21 @@ To enable tab completion for ArguBASH scripts in Bash:
 
 The [ArguBASH-completion](./ArguBASH-completion) script will automatically detect ArguBASH-compatible scripts and provide tab completion for their arguments.
 
+#### Global install
+
+If you wish to install this for all users, a common location is the `/etc/bash_completion.d` directory.  Just copy the `ArguBASH-completion` file to that directory.  If that directory exists, that is the best place to put if for global access.
+
+```bash
+cp ArguBASH-completion /etc/bash_completion.d/
+```
+
+Once it is there, you just need to start a fresh login shell to test it:
+
+```bash
+bash -l
+# now test argument tab completion with ./example-command.sh --v_TAB_ to see it working
+```
+
 ### Zsh Completion
 
 For Zsh users, ArguBASH includes a dedicated completion script that follows Zsh conventions:
@@ -494,6 +509,40 @@ For Zsh users, ArguBASH includes a dedicated completion script that follows Zsh 
    ```
 
 Once installed, any script using ArguBASH argument parsing will automatically get tab completion for its defined arguments when using Zsh.
+
+#### Global install
+
+If you wish to install Zsh completion for all users on the system, you can place the completion script in one of the standard system-wide directories.
+
+**Choosing the right directory:**
+- On **Linux**: Use `/usr/share/zsh/site-functions/` (standard location for most distributions)
+- On **macOS**: Use `/usr/local/share/zsh/site-functions/` (preferred for user-installed software)
+
+If both directories exist on your system (common on macOS):
+- Choose `/usr/local/share/zsh/site-functions/` if you're installing manually or via a package manager like Homebrew
+- Choose `/usr/share/zsh/site-functions/` only if you're integrating with system packages
+
+Installation commands:
+
+```bash
+# For Linux systems (standard location)
+sudo cp _ArguBASH-completion /usr/share/zsh/site-functions/
+sudo chmod +x /usr/share/zsh/site-functions/_ArguBASH-completion
+
+# For macOS or Homebrew-based Linux systems (preferred for user software)
+sudo cp _ArguBASH-completion /usr/local/share/zsh/site-functions/
+sudo chmod +x /usr/local/share/zsh/site-functions/_ArguBASH-completion
+```
+
+After installing to a system directory, users will need to either start a new Zsh session or rebuild their completion cache:
+
+```bash
+# Rebuild Zsh completion cache
+rm -f ~/.zcompdump
+compinit
+```
+
+These system directories are already in the default `$fpath`, so users won't need to modify their `~/.zshrc` files.
 
 ## Limitations
 
