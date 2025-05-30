@@ -661,7 +661,11 @@ This flow ensures that arguments are processed in a predictable order of precede
 
 ### How Tab Completion Works
 
-The ArguBASH tab completion system is designed to automatically detect and provide completions for any script using the ArguBASH pattern.  Here's how it works:
+The ArguBASH tab completion system is designed to automatically detect and provide completions for any script using the ArguBASH pattern. Both Bash and Zsh completion mechanisms follow similar principles but with different implementations.
+
+#### Bash Completion Mechanism
+
+The Bash completion system works as follows:
 
 1. **Script Detection**: When you type a command and press Tab, the completion function:
    - Checks if the command exists as a file
@@ -672,16 +676,57 @@ The ArguBASH tab completion system is designed to automatically detect and provi
 2. **Argument Extraction**: If the script is detected as ArguBASH-compatible:
    - Parses the script to extract all argument names from the `ARGS_AND_DEFAULTS` array
    - Builds a list of valid `--argument` options using the same parsing logic as the ArguBASH parser
+   - Matches the ArguBASH format by converting internal variable names to command-line options
 
 3. **Completion Generation**: Based on what you've typed so far:
    - If you're typing an option (starting with `-`), it offers matching options
    - If you've just entered an option and need a value, it lets Bash use standard completion
 
 4. **Version-specific Handling**:
-   - Newer Bash versions (4.0+): Uses dynamic command detection and argument extraction
+   - Newer Bash versions (4.0+): Uses dynamic command detection and argument extraction with the `-D` flag
    - Older Bash versions: Requires explicit registration of commands for completion
 
-The completion system is designed to be:
+#### Zsh Completion Mechanism
+
+The Zsh completion system follows similar detection principles but provides enhanced functionality:
+
+1. **Script Detection**: Similar to Bash, the completion function:
+   - Checks if the command exists using `command -v`
+   - Verifies it's a bash script and scans for the `ARGS_AND_DEFAULTS=(` pattern
+   - Uses the first 4096 bytes for performance while scanning
+
+2. **Enhanced Argument Extraction**: When a script is identified as ArguBASH-compatible:
+   - Extracts not just argument names but also their descriptions from comment lines
+   - Only uses the first line of help text for each argument (multi-line help text is not supported in the completion menu)
+   - Captures default values for each argument to display in the completion menu
+   - Matches the ArguBASH format by converting internal variable names to command-line options
+   - Builds a comprehensive set of argument specifications for zsh's `_arguments` function
+
+3. **Rich Completion Display**:
+   - Uses zsh's advanced completion system to show help text and default values inline
+   - Formats each option with its description: `--option[Description (default: value)]`
+   - Only displays the first line of multi-line help text in the completion menu
+   - Always adds `--help` and `-h` options with appropriate descriptions
+   - Detects if the script accepts positional arguments (`EXTRA_ARGS=true`) and enables file completion
+
+4. **Zsh-Specific Features**:
+   - Uses the `-S` flag with `_arguments` to properly handle the `--` delimiter
+   - Leverages zsh's menu-driven completion interface for better user experience
+   - Integrates with zsh's file completion for positional arguments
+   - Provides contextual information directly in the completion menu
+
+#### Comparison of Completion Mechanisms
+
+| Feature | Bash Completion | Zsh Completion |
+|---------|----------------|----------------|
+| Detection method | Pattern scanning | Pattern scanning |
+| Argument format | Matches ArguBASH conversion | Matches ArguBASH conversion |
+| Help text display | No | Yes, shows inline |
+| Default values | No | Yes, shows inline |
+| Positional arguments | Basic handling | Enhanced with file completion |
+| Configuration | May need explicit setup for older versions | Works with zsh completion system |
+
+The completion systems for both shells are designed to be:
 - **Zero-configuration**: Works automatically for properly structured scripts
 - **Lightweight**: Adds minimal overhead to the shell
 - **Discoverable**: Helps users find available options
