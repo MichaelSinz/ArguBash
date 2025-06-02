@@ -174,16 +174,17 @@ if true; then
    # The trick to get the command line arguments to be printed with whatever
    # escaping needed to get them to turn out correctly for the shell is to
    # let the shell log it for us and we just clean it up.
-   [[ ${verbosity-0} -lt 2 ]] || echo >&2 -e "\nRunning with these effective options:\n\n$(
-         declare -a effective_cmd_args=("${BASH_SOURCE}")
-         for var in "${ARGS_AND_DEFAULTS[@]}"; do
-            key=${var/=*}
-            effective_cmd_args+=("--${key//_/-}" "${!key}")
-         done
-         [[ ${#extra_args} -lt 1 ]] || effective_cmd_args+=("--" "${extra_args[@]}")
-         effective_cmd_line=$( (set -x; : "${effective_cmd_args[@]}") 2>&1 )
-         echo "${effective_cmd_line/*+ : }"
-      )\n"
+   readonly RUNNING_WITH_OPTIONS=$(
+      declare -a effective_cmd_args=("${BASH_SOURCE}")
+      for var in "${ARGS_AND_DEFAULTS[@]}"; do
+         key=${var/=*}
+         effective_cmd_args+=("--${key//_/-}" "${!key}")
+      done
+      [[ ${#extra_args} -lt 1 ]] || effective_cmd_args+=("--" "${extra_args[@]}")
+      effective_cmd_line=$( (set -x; : "${effective_cmd_args[@]}") 2>&1 )
+      echo "${effective_cmd_line/*+ : }"
+   )
+   [[ ${verbosity-0} -lt 2 ]] || echo >&2 -e "\nRunning with these effective options:\n\n${RUNNING_WITH_OPTIONS}\n"
 fi
 # END of ARGUMENT PARSER
 ##################################################################
