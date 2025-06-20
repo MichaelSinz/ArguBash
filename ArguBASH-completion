@@ -50,7 +50,7 @@ _ArguBASH_completion() {
                         line="${line#"${line%%[![:space:]]*}"}"
                         # Validate that it is a valid argument setting
                         if [[ ${line} =~ ^[a-zA-Z][a-zA-Z0-9_]*= ]]; then
-                            local argument="${line/=*}"
+                            local argument="${line%=*}"
                             script_args+=("${argument//_/-}")
                         fi
                     fi

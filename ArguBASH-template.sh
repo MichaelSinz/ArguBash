@@ -102,14 +102,14 @@ if true; then
    # Set all of the defaults but only if the variable is not already set
    # This way a user can override the defaults by setting them in their environment
    for default in "${ARGS_AND_DEFAULTS[@]}"; do
-      key=${default/=*}
+      key=${default%=*}
       # Validate that the key is a valid variable name - if not, error with details
       if [[ ! $key =~ ^[a-zA-Z][a-zA-Z0-9_]*$ ]]; then
          _error "Parameter '$key' should start with a letter and only contain letters, numbers, and underscores"
          exit 1
       fi
       [[ ${#key} -le ${ARGS_AND_DEFAULTS_MAX_LEN} ]] || ARGS_AND_DEFAULTS_MAX_LEN=${#key}
-      [[ -n ${!key} ]] || declare ${default}
+      [[ -n ${!key} ]] || declare ${key}="${default#*=}"
    done
 
    function show_help() {
@@ -135,9 +135,9 @@ if true; then
                   # The comments are the extended help text
                   help_text+="${left_blank} ${line###}\n"
                elif [[ ${line} == *"="* ]]; then
-                  argument="${line/=*}"
+                  argument="${line%=*}"
                   # If the script's default is different show it:
-                  [[ ${!argument} == ${line/*=} ]] || help_text="${left_blank}  original: ${line/*=}\n${help_text}"
+                  [[ ${!argument} == ${line#*=} ]] || help_text="${left_blank}  original: ${line#*=}\n${help_text}"
                   declare "_help_${argument}"="${help_text}${left_blank} ------------------------------------------------------"
                   help_text=""
                fi
@@ -152,7 +152,7 @@ if true; then
       fi
       {
          for var in "${ARGS_AND_DEFAULTS[@]}"; do
-            key=${var/=*}
+            key=${var%=*}
             printf "${arg_indent}--%-*s" ${ARGS_AND_DEFAULTS_MAX_LEN} "${key//_/-}"
             echo "default: ${!key}"
             long_help="_help_${key}"
@@ -190,7 +190,7 @@ if true; then
       elif [[ ${arg} == --* ]] || [[ ! ${EXTRA_ARGS} == true ]]; then
          valid=false
          for var in "${ARGS_AND_DEFAULTS[@]}"; do
-            key=${var/=*}
+            key=${var%=*}
             if [[ ${arg} == --${key//_/-} ]]; then
                # if there is no additional argument or it looks like a flag
                # then it is invalid - this does mean you can't have a value
@@ -219,7 +219,7 @@ if true; then
 
    # Unset any that are blank (trick used later)
    for var in "${ARGS_AND_DEFAULTS[@]}"; do
-      key=${var/=*}
+      key=${var%=*}
       [[ -n ${!key} ]] || unset ${key}
    done
 
@@ -232,7 +232,7 @@ if true; then
    readonly RUNNING_WITH_OPTIONS=$(
       declare -a effective_cmd_args=("${BASH_SOURCE}")
       for var in "${ARGS_AND_DEFAULTS[@]}"; do
-         key=${var/=*}
+         key=${var%=*}
          effective_cmd_args+=("--${key//_/-}" "${!key}")
       done
       [[ ${#extra_args} -lt 1 ]] || effective_cmd_args+=("--" "${extra_args[@]}")

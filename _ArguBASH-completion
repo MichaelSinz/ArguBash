@@ -58,7 +58,7 @@ _ArguBASH_completion() {
                         fi
                     elif [[ ${line} =~ '[a-zA-Z][a-zA-Z0-9_]*=' ]]; then
                         # This is an argument definition
-                        local argument="${line/=*}"
+                        local argument="${line%=*}"
                         local arg_with_dashes="${argument//_/-}"
                         local default_value="${line#*=}"
 
